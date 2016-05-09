@@ -26,7 +26,7 @@ static u8 checksum(u8 data[], int len)
 }
 
 typedef struct laser_msg_s {
-	u8 len;
+	s8 len;
 	u8 data[15];
 } laser_msg_t;
 
@@ -53,10 +53,10 @@ int laser_transport(int fd, const laser_msg_t* msg, laser_msg_t* ret)
 	DBGMSG("W", msg);
 	write(fd, msg->data, msg->len); // TODO: 
 	if (!ret) return 0;
-	ssize_t len = read(fd, ret->data, sizeof(ret->data)); // TODO:
+	// usleep(10*1000); // wait for at least 12 bytes data under B9600
+	ret->len = read(fd, ret->data, sizeof(ret->data)); // TODO:
 	DBGMSG("R", ret);
-	if (len < 0) return -1;
-	ret->len = len;
+	if (ret->len < 0) return -1;
 	return 0;
 }
 
@@ -111,9 +111,11 @@ int laser_get_params(Laser* laser, u8* addr, u8* light, u8* temperature)
 
 int laser_sleep(Laser* laser) 
 {
+
 	return 0;
 }
 
+#ifdef TEST
 int main(int argc, char* argv[])
 {
 	if (argc == 1) return 1;
@@ -126,3 +128,4 @@ int main(int argc, char* argv[])
 	laser_close(laser);
 	return 0;
 }
+#endif
