@@ -1,9 +1,9 @@
 TARGET := laser
-CFLAGS := -DDEBUG -DTEST -ggdb
+CFLAGS := -DDEBUG -ggdb
 
 all:$(TARGET)
 
-$(TARGET): laser.o serial.o
+$(TARGET): main.o laser.o serial.o
 
 clean:
 	-rm *.o $(TARGET)

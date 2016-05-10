@@ -117,7 +117,7 @@ static int laser_config(Laser* laser, u8 type, u8 value)
 	if (laser_transport(laser->fd, &msg, &ret) < 0) {
 		return -1;
 	}
-	if (ret.len != 4 || ret.len != 5 ||
+	if (!(ret.len == 4 || ret.len == 5) ||
 	    checksum(ret.data, ret.len) != 0) {
 		return -2;
 	}
@@ -146,7 +146,9 @@ static int _config_check_amoungst(u8 val, const u8 arr[], int len) {
 int laser_config_addr(Laser* laser, unsigned char addr)
 {
 	if ((addr & 0xf0) == 0xf0) return -1;	// reserved addr
-	return laser_config(laser, 0x01, addr);
+	int ret = laser_config(laser, 0x01, addr);
+	if (ret == 0) laser->addr = addr;
+	return ret;
 }
 
 int laser_config_base_pos(Laser* laser, int value)
@@ -209,6 +211,7 @@ int laser_wakeup(Laser* laser)
 
 float laser_mesure_once(Laser* laser)
 {
+	// if (!laser->awaken) laser_wakeup(laser); // tested: no need
 	laser_msg_t msg = { 4, { laser->addr, 0x06, 0x02 } };
 	laser_msg_t ret = { 0 };
 	msg.data[msg.len-1] = checksum(msg.data, msg.len-1);
@@ -226,19 +229,3 @@ float laser_mesure_once(Laser* laser)
 	}
 }
 
-#ifdef TEST
-int main(int argc, char* argv[])
-{
-	if (argc == 1) return 1;
-	const char* dev = argv[1];
-	Laser* laser = laser_open(dev);
-	if (laser == NULL) {
-		perror("laeser_open");
-		return 2;
-	}
-	float dist = laser_mesure_once(laser);
-	printf("Distance: %f\n", dist);
-	laser_close(laser);
-	return 0;
-}
-#endif
