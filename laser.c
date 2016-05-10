@@ -157,7 +157,6 @@ static int laser_config(Laser* laser, u8 type, u8 value)
 	} else { // failed
 		return -3;
 	}
-
 }
 
 #ifdef DEBUG
@@ -208,6 +207,27 @@ int laser_config_resolution(Laser* laser, int value)
 	const u8 valid[] = { LASER_RESOL_1MM, LASER_RESOL_0_1MM };
 	config_check_amoungst(value, valid);
 	return laser_config(laser, 0x0c, value);
+}
+
+
+int laser_adjust_distance(Laser* laser, int value)
+{
+	if (!(-255 <= value && value <= 255)) return -1; // overflow
+	laser_msg_t msg = { 6, { 0xfa, 0x04, 0x06, (value < 0 ? 0x2d : 0x2b), abs(value) } };
+	laser_msg_t ret = { 0 };
+	msg.data[msg.len-1] = checksum(msg.data, msg.len-1);
+	if (laser_transport(laser->fd, &msg, &ret) < 0) {
+		return -1;
+	}
+	if (!(ret.len == 4 || ret.len == 5) ||
+	    checksum(ret.data, ret.len) != 0) {
+		return -2;
+	}
+	if (ret.len == 4 && ret.data[1] == 0x04) { // succeed
+		return 0;
+	} else { // failed
+		return -3;
+	}
 }
 
 

@@ -30,6 +30,8 @@ int laser_config_freq(Laser* laser, int freq);
 enum LASER_RESOL { LASER_RESOL_1MM = 1, LASER_RESOL_0_1MM = 2 };
 int laser_config_resolution(Laser* laser, int res);
 
+int laser_adjust_distance(Laser* laser, int dist);
+
 //// sleep and wakeup
 int laser_sleep(Laser* laser);
 int laser_wakeup(Laser* laser);
