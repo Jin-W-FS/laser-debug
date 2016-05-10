@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/select.h>
 
 #include "serial.h"
 #include "laser.h"
@@ -47,14 +48,44 @@ void print_msg(const char* title, const laser_msg_t* msg)
 #define DBGMSG(...)
 #endif
 
+static ssize_t read_timed(int fd, void* buf, size_t count, int ms)
+{
+	if (ms >= 0) {
+		struct timeval tv = { ms / 1000, ms % 1000 * 1000 };
+		
+		fd_set rfds;
+		FD_ZERO(&rfds);
+		FD_SET(fd, &rfds);
+		
+		int ret = select(fd+1, &rfds, NULL, NULL, &tv);
+		if (ret <= 0) return ret;
+	}
+	return read(fd, buf, count);
+}
+
+static ssize_t laser_read(int fd, void* buf, size_t count)
+{
+	ssize_t len = 0;
+	int timeout = -1;
+	while (1) {
+		ssize_t ret = read_timed(fd, buf + len, count, timeout);
+		if (ret < 0) return ret;
+		if (ret == 0) break;
+		len += ret;
+		count -= ret;
+		if (count < 1) count = 1;
+		timeout = 10;
+	}
+	return len;
+}
+
 static int laser_transport(int fd, const laser_msg_t* msg, laser_msg_t* ret)
 {
-	// TODO: check return val of read/write to ensure all's read/wrote
 	DBGMSG("W", msg);
-	write(fd, msg->data, msg->len); // TODO: 
+	write(fd, msg->data, msg->len);
 	if (!ret) return 0;
-	// usleep(10*1000); // wait for at least 12 bytes data under B9600
-	ret->len = read(fd, ret->data, sizeof(ret->data)); // TODO:
+	// usleep(1000*1000); // wait for at least 12 bytes data under B9600
+	ret->len = laser_read(fd, ret->data, sizeof(ret->data));
 	DBGMSG("R", ret);
 	if (ret->len < 0) return -1;
 	return 0;
